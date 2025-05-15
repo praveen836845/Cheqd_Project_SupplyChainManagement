@@ -1,0 +1,10 @@
+{
+    "name": "degreeSchema",
+    "version": "1.5.7",
+    "attrNames": [
+        "name",
+        "age",
+        "degree",
+        "grade"
+    ]
+}
