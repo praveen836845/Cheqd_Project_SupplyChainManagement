@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Download, ExternalLink } from 'lucide-react';
+import { X, Download, ExternalLink, Copy, Check } from 'lucide-react';
 import { Credential } from '../../types';
 import VCStatus from '../shared/VCStatus';
+import { toast } from 'react-hot-toast';
 
 interface CredentialModalProps {
   credential: Credential | null;
@@ -15,7 +16,7 @@ const CredentialModal: React.FC<CredentialModalProps> = ({
   isOpen,
   onClose
 }) => {
-  if (!credential) return null;
+  if (!isOpen || !credential) return null;
 
   const determineStatus = (cred: Credential): 'valid' | 'invalid' | 'expired' | 'revoked' => {
     if (cred.status?.revoked) return 'revoked';
@@ -24,6 +25,14 @@ const CredentialModal: React.FC<CredentialModalProps> = ({
   };
 
   const statusValue = determineStatus(credential);
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(`${label} copied to clipboard!`);
+    }).catch(() => {
+      toast.error('Failed to copy to clipboard');
+    });
+  };
 
   const handleDownload = () => {
     const jsonString = JSON.stringify(credential, null, 2);
@@ -36,6 +45,7 @@ const CredentialModal: React.FC<CredentialModalProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    toast.success('Credential downloaded successfully!');
   };
 
   const backdropVariants = {
@@ -122,10 +132,57 @@ const CredentialModal: React.FC<CredentialModalProps> = ({
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-medium text-slate-500">Issuer</h4>
-                    <p className="mt-1 text-slate-900 break-all">
-                      {credential.issuer}
-                    </p>
+                    <h4 className="text-sm font-medium text-slate-500">Issuer Information</h4>
+                    <div className="mt-1 space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                        <div>
+                          <p className="text-xs text-slate-500">Original Issuer</p>
+                          <p className="text-sm text-slate-900 break-all">{credential.issuer}</p>
+                        </div>
+                        <button
+                          onClick={() => handleCopy(credential.issuer, 'Original issuer')}
+                          className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {credential.newIssuer && (
+                        <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                          <div>
+                            <p className="text-xs text-slate-500">Verified Issuer DID</p>
+                            <p className="text-sm text-slate-900 break-all">{credential.newIssuer}</p>
+                          </div>
+                          <button
+                            onClick={() => handleCopy(credential.newIssuer, 'Verified issuer DID')}
+                            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                      {credential.signerInfo && (
+                        <div className="p-2 bg-slate-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-slate-500">Signer ID</p>
+                            <button
+                              onClick={() => handleCopy(credential.signerInfo!.id, 'Signer ID')}
+                              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <p className="text-sm text-slate-900 break-all">{credential.signerInfo.id}</p>
+                          <div className="mt-2">
+                            <p className="text-xs text-slate-500">Public Key</p>
+                            <div className="mt-1 text-xs font-mono bg-slate-100 p-2 rounded">
+                              <p>crv: {credential.signerInfo.publicKeyJwk.crv}</p>
+                              <p>kty: {credential.signerInfo.publicKeyJwk.kty}</p>
+                              <p className="break-all">x: {credential.signerInfo.publicKeyJwk.x}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -170,9 +227,17 @@ const CredentialModal: React.FC<CredentialModalProps> = ({
                   <div>
                     <h4 className="text-sm font-medium text-slate-500">Cryptographic Proof</h4>
                     <div className="mt-1 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs font-mono text-slate-700 overflow-x-auto">
-                      <p>Type: {credential.proof.type}</p>
+                      <div className="flex items-center justify-between">
+                        <p>Type: {credential.proof.type}</p>
+                        <button
+                          onClick={() => handleCopy(credential.proof.proofValue, 'Proof value')}
+                          className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
                       <p className="mt-1">Created: {credential.proof.created}</p>
-                      <p className="mt-1">Method: {credential.proof.verificationMethod.substring(0, 30)}...</p>
+                      <p className="mt-1">Method: {credential.proof.verificationMethod}</p>
                       <p className="mt-1">Purpose: {credential.proof.proofPurpose}</p>
                       <p className="mt-1 break-all">Value: {credential.proof.proofValue.substring(0, 40)}...</p>
                     </div>

@@ -36,23 +36,42 @@ export interface DashboardMetrics {
   products: ProductHistory[];
 }
 
-export interface Credential {
+export interface SignerInfo {
   id: string;
   type: string;
-  issuer: string;
+  controller: string;
+  publicKeyJwk: {
+    crv: string;
+    kty: string;
+    x: string;
+  };
+}
+
+export interface Credential {
+  id: string;
+  type: string[];
   issuanceDate: string;
   expirationDate?: string;
-  status: 'valid' | 'invalid' | 'expired' | 'revoked';
-  subject: {
-    id: string;
-    type: string;
-    [key: string]: any;
+  issuer: string;
+  newIssuer?: string;
+  signerInfo?: SignerInfo;
+  credentialSubject: {
+    productId: string;
+    productName: string;
+    batchNumber?: string;
+    handlingDate: string;
+    description?: string;
+  };
+  status?: {
+    revoked: boolean;
+    revocationDate?: string;
+    revocationReason?: string;
   };
   proof: {
     type: string;
     created: string;
-    proofPurpose: string;
     verificationMethod: string;
-    jws: string;
+    proofPurpose: string;
+    proofValue: string;
   };
 } 
