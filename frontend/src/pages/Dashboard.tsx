@@ -216,7 +216,7 @@ const Dashboard: React.FC = () => {
           description: product.description,
           jwt: product.jwt,
 
-          status: product.status === 'active' ? 'valid' : 'invalid',
+          status: product.status === 'active' ? 'valid' : 'pending',
           journey: [],
           certificates: product.certificates || []
         }));
