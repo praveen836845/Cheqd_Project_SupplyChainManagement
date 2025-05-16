@@ -63,18 +63,18 @@ const Navigation: React.FC = () => {
       icon: <FileSignature className="w-5 h-5" />,
       roles: ['manufacturer', 'distributor', 'logistics', 'retailer'],
     },
-    {
-      to: '/verify',
-      label: 'Verify Credential',
-      icon: <ShieldCheck className="w-5 h-5" />,
-      roles: ['manufacturer', 'distributor', 'logistics', 'retailer', 'auditor', 'consumer'],
-    },
-    {
-      to: '/timeline/latest',
-      label: 'Product Timeline',
-      icon: <LineChart className="w-5 h-5" />,
-      roles: ['manufacturer', 'distributor', 'logistics', 'retailer', 'auditor', 'consumer'],
-    },
+    // {
+    //   to: '/verify',
+    //   label: 'Verify Credential',
+    //   icon: <ShieldCheck className="w-5 h-5" />,
+    //   roles: ['manufacturer', 'distributor', 'logistics', 'retailer', 'auditor', 'consumer'],
+    // },
+    // {
+    //   to: '/timeline/latest',
+    //   label: 'Product Timeline',
+    //   icon: <LineChart className="w-5 h-5" />,
+    //   roles: ['manufacturer', 'distributor', 'logistics', 'retailer', 'auditor', 'consumer'],
+    // },
     {
       to: '/revocation',
       label: 'Revocation History',
