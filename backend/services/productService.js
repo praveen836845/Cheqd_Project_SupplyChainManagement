@@ -124,11 +124,7 @@ export const getProductsByIssuerDID = async (issuerDID) => {
       .lean(); // Convert to plain JavaScript objects for better performance
 
     if (!products || products.length === 0) {
-      return {
-        success: true,
-        message: 'No products found for this issuer',
-        data: []
-      };
+      return [];
     }
 
     return  products;
@@ -150,13 +146,9 @@ export const getProductsByRecipientDID = async (recipientDID) => {
     const products = await Product.find({ recipientDID })
       .sort({ createdAt: -1 })
       .lean(); // Convert to plain JavaScript objects for better performance
-
+     console.log("Products by recipient", products)
     if (!products || products.length === 0) {
-      return {
-        success: true,
-        message: 'No products found for this recipient',
-        data: []
-      };
+      return [];
     }
 
     return products;

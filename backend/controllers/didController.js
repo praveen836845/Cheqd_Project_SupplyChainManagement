@@ -64,15 +64,17 @@ const createDIDHandler = async (req, res) => {
 
 const createSubjectDIDHandler = async(req, res) => {
   try {
-    const { productDetails,  } = req.body;
+    const { productDetails } = req.body;
     const issuerDID = 'did:cheqd:testnet:b379d4dc-c6d6-490d-8fca-52b92a574438';
-   console.log("-----------------------------------SubjectDID--------------------------------", productDetails);
-
+    console.log("-----------------------------------SubjectDID--------------------------------", productDetails);
 
     if (!productDetails || !issuerDID) {
       return res.status(400).json({ error: 'Product details and issuer DID are required' });
     }
- 
+
+    // Check if this is an edit operation
+    const isEdit = productDetails.isEdit || false;
+    
     console.log("**********************IssuerId", issuerDID);
     // Create DID for the product
     const result = await createSubjectDID(productDetails.productName);
@@ -107,15 +109,23 @@ const createSubjectDIDHandler = async(req, res) => {
       }
     );
 
-    // Store in MongoDB
-    const productCredential = new ProductCredential({
-      productName: productDetails.productName,
-      productId: productDetails.productId,
-      issuerDID,
-      recipientDID: productDetails.recipientDID,
-      resourceId: resourceResponse.data.resource.resourceId
-    });
-    await productCredential.save();
+    // Only create a new ProductCredential if this is not an edit operation
+    if (!isEdit) {
+      // Check if a ProductCredential with this productId already exists
+      let existingCredential = await ProductCredential.findOne({ productId: productDetails.productId });
+      
+      if (!existingCredential) {
+        // Only create a new entry if one doesn't exist
+        const productCredential = new ProductCredential({
+          productName: productDetails.productName,
+          productId: productDetails.productId,
+          issuerDID,
+          recipientDID: productDetails.recipientDID,
+          resourceId: resourceResponse.data.resource.resourceId
+        });
+        await productCredential.save();
+      }
+    }
 
     res.json({
       subjectDID,

@@ -55,6 +55,15 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     required: true
   },
+  vcDataArray: {
+    type: [{
+      issuerDID: String,
+      recipientDID: String,
+      vcData: mongoose.Schema.Types.Mixed,
+      timestamp: Date
+    }],
+    default: []
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -3,7 +3,6 @@ import { verifyVC } from '../services/cheqdService.js';
 
 export const getProductsForUser = async (req, res) => {
   try {
-    console.log("req.body", req);
     const { userDID, role } = req.body.data; // Assuming user info is attached by auth middleware
     let products
 
@@ -13,7 +12,9 @@ export const getProductsForUser = async (req, res) => {
       console.log("Products by issuer", products);
     } else {
       // For other roles (distributor, logistics, retailer), show products where they are recipients
+      console.log("Products by recipient", userDID)
       products = await getProductsByRecipientDID(userDID);
+      console.log("Products by recipient Outside", products)
     }
 
 

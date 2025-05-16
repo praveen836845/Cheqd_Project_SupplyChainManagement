@@ -7,23 +7,77 @@ const issueVCHandler = async (req, res) => {
   try {
     const { issuerDid, subjectDid, credentialData } = req.body;
     
+    // Check if this is an update to an existing product
+    const isEdit = credentialData.isEdit || false;
+    const originalId = credentialData.originalId;
+    const productId = credentialData.productId;
+    
     // Issue VC
     const vc = await issueVC(issuerDid, subjectDid, credentialData);
 
-    // Find and update the ProductCredential with VC data
-    const productCredential = await ProductCredential.findOne({ 
-      recipientDID: subjectDid 
-    });
+    if (isEdit) {
+      // This is an update to an existing product
+      let existingProduct;
+      
+      // Find the existing product either by ID or productId
+      if (originalId) {
+        existingProduct = await Product.findById(originalId);
+      } else if (productId) {
+        existingProduct = await Product.findOne({ productId: productId });
+      }
+      
+      if (!existingProduct) {
+        return res.status(404).json({ error: 'Existing product not found' });
+      }
+      
+      // Create a new entry in the vcData array or initialize it if it doesn't exist
+      if (!existingProduct.vcDataArray) {
+        existingProduct.vcDataArray = [];
+      }
+      
+      // Add the new VC to the array
+      existingProduct.vcDataArray.push({
+        issuerDID: issuerDid,
+        recipientDID: credentialData.recipientDID,
+        vcData: vc,
+        timestamp: new Date()
+      });
+      
+      // Update the main recipientDID field
+      existingProduct.recipientDID = credentialData.recipientDID;
+      
+      // Save the updated product
+      await existingProduct.save();
+      
+      // No need to create a new ProductCredential entry for existing products
+      return res.json({ vc, product: existingProduct });
+    } else {
+      // This is a new product
+      // Check if a ProductCredential with this productId already exists
+      let productCredential = await ProductCredential.findOne({ 
+        productId: productId 
+      });
 
-    // if (!productCredential) {
-    //   return res.status(404).json({ error: 'Product credential not found' });
-    // }
+      if (productCredential) {
+        // Update existing ProductCredential
+        productCredential.vcData = vc;
+        productCredential.recipientDID = credentialData.recipientDID;
+        await productCredential.save();
+      } else {
+        // Only create a new ProductCredential if one doesn't exist
+        productCredential = new ProductCredential({
+          productName: credentialData.productName,
+          productId: credentialData.productId,
+          issuerDID: issuerDid,
+          recipientDID: credentialData.recipientDID,
+          resourceId: vc.resourceId || 'unknown',
+          vcData: vc
+        });
+        await productCredential.save();
+      }
 
-    // Update with VC data
-    productCredential.vcData = vc;
-    await productCredential.save();
-
-    res.json({ vc });
+      res.json({ vc });
+    }
   } catch (error) {
     console.error('VC issuance error:', error);
     res.status(500).json({ error: error.message });

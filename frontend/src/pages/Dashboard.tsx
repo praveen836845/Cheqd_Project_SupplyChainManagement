@@ -249,9 +249,14 @@ const Dashboard: React.FC = () => {
     fetchProducts(false);
   };
 
-  const handleProductClick = (productId: string) => {
-    // navigate(`/timeline/${productId}`);
-    
+  const handleProductClick = (product: any) => {
+    // Navigate to the issue credential page with product data
+    navigate('/issue', { 
+      state: { 
+        productData: product,
+        isEdit: true
+      } 
+    });
   };
 
   const filteredProducts = products.filter(product => {
@@ -682,7 +687,7 @@ const Dashboard: React.FC = () => {
                             description={product.description}
                             jwt={product.jwt}
                             status={product.status}
-                            onClick={() => handleProductClick(product.productId)}
+                            onClick={() => handleProductClick(product)}
                           />
                         ))
                       ) : (

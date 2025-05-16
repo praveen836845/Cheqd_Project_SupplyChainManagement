@@ -3,6 +3,7 @@ import { cheqdStudioApiUrl, cheqdApiKey } from '../config.js';
 import { v4 as uuidv4 } from 'uuid';
 import * as ed from '@noble/ed25519';
 import bs58 from 'bs58';
+import Product from '../models/Product.js';
 import FormData from 'form-data';
 import { createProduct } from './productService.js';
 
@@ -268,27 +269,79 @@ const issueVC = async (issuerDid, subjectDid, credentialData) => {
     const response = await axios.post(url, payload, { headers });
     console.log('VC issuance response:', response.data);
 
-    // Prepare product data for database storage
-    const productData = {
-      productId: credentialData.productId,
-      productName: credentialData.productName,
-      batchNumber: credentialData.batchNumber,
-      description: credentialData.description || '',
-      handlingDate: new Date(credentialData.handlingDate),
-      certificates: credentialData.certificates || [],
-      subjectDID: subjectDid,
-      issuerDID: issuerDid,
-      recipientDID: credentialData.recipientDID,
-      resourceId: resourceId,
-      status: 'active',
-      vcData: response.data // Store the complete VC data
-    };
+    // Check if this is an edit operation
+    const isEdit = credentialData.isEdit || false;
+    let savedProduct;
 
-    console.log('Preparing to save product data:', productData);
+    if (isEdit) {
+      // This is an update to an existing product
+      console.log('Updating existing product with ID:', credentialData.productId);
+      
+      // Find the existing product
+      const existingProduct = await Product.findOne({ productId: credentialData.productId });
+      
+      if (!existingProduct) {
+        throw new Error(`Product with ID ${credentialData.productId} not found for update`);
+      }
+      
+      // Create a new entry in the vcDataArray or initialize it if it doesn't exist
+      if (!existingProduct.vcDataArray) {
+        existingProduct.vcDataArray = [];
+      }
+      
+      // Add the new VC to the array
+      existingProduct.vcDataArray.push({
+        issuerDID: issuerDid,
+        recipientDID: credentialData.recipientDID,
+        vcData: response.data,
+        timestamp: new Date()
+      });
+      
+      // Update the main fields
+      existingProduct.recipientDID = credentialData.recipientDID;
+      existingProduct.vcData = response.data; // Update the latest VC data
+      
+      // Save the updated product
+      savedProduct = await existingProduct.save();
+      console.log('Product updated in database:', savedProduct._id);
+    } else {
+      // This is a new product
+      // Prepare product data for database storage
+      const productData = {
+        productId: credentialData.productId,
+        productName: credentialData.productName,
+        batchNumber: credentialData.batchNumber,
+        description: credentialData.description || '',
+        handlingDate: new Date(credentialData.handlingDate),
+        certificates: credentialData.certificates || [],
+        subjectDID: subjectDid,
+        issuerDID: issuerDid,
+        recipientDID: credentialData.recipientDID,
+        resourceId: resourceId,
+        status: 'active',
+        vcData: response.data, // Store the complete VC data
+        vcDataArray: [{
+          issuerDID: issuerDid,
+          recipientDID: credentialData.recipientDID,
+          vcData: response.data,
+          timestamp: new Date()
+        }]
+      };
 
-    // Save to database
-    const savedProduct = await createProduct(productData);
-    console.log('Product saved to database:', savedProduct);
+      console.log('Preparing to save new product data:', productData);
+
+      // Check if a product with this ID already exists
+      const existingProduct = await Product.findOne({ productId: credentialData.productId });
+      
+      if (existingProduct) {
+        throw new Error(`Product with ID ${credentialData.productId} already exists. Use edit mode to update.`);
+      }
+      
+      // Save to database
+      const product = new Product(productData);
+      savedProduct = await product.save();
+      console.log('New product saved to database:', savedProduct._id);
+    }
 
     // Return both the VC and saved product
     return {
