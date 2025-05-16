@@ -51,9 +51,9 @@ export const issueVC = async (issuerDid: string, subjectDid: string, credentialD
   }
 };
 
-export const verifyVC = async (vc: Credential): Promise<any> => {
+export const verifyVC = async (subjectDid: string): Promise<any> => {
   try {
-    const response = await api.post('/vc/verify', { vc });
+    const response = await api.post('/vc/verify', { subjectDid });
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -115,6 +115,30 @@ export const getDashboardMetrics = async (role: UserRole): Promise<DashboardMetr
   }
 };
 
+export const createSubjectDID = async (productDetails: any, issuerDID: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/did/create-subject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ productDetails, issuerDID }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new APIError(error.message || 'Failed to create subject DID');
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof APIError) {
+      throw error;
+    }
+    throw new APIError('Failed to create subject DID');
+  }
+};
+
 // Error handling helper
 const handleApiError = (error: unknown): never => {
   if (axios.isAxiosError(error)) {
@@ -147,5 +171,17 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const getPotentialRecipients = async (role: string): Promise<Array<{ did: string; name: string }>> => {
+  try {
+    const response = await api.get(`/did/potential-recipients?role=${role}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new APIError(error.response?.data?.message || 'Failed to fetch potential recipients');
+    }
+    throw new APIError('Failed to fetch potential recipients');
+  }
+};
 
 export default api; 

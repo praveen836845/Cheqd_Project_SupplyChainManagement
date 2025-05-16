@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -20,9 +20,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Navigation from '../components/layout/Navigation';
-import confetti from 'react-confetti';
+import ReactConfetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
-import { issueVC, APIError } from '../services/api';
+import { issueVC, createSubjectDID, getPotentialRecipients, APIError } from '../services/api';
 
 type CertificateType = 'Organic' | 'ColdChain' | 'Sustainable' | 'QualityTested' | 'Recyclable';
 
@@ -59,6 +59,9 @@ const IssueCredential: React.FC = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  
+  const [potentialRecipients, setPotentialRecipients] = useState<Array<{ did: string; name: string }>>([]);
+  const [isLoadingRecipients, setIsLoadingRecipients] = useState(false);
   
   const certificateOptions: { type: CertificateType; label: string; description: string }[] = [
     { 
@@ -117,7 +120,7 @@ const IssueCredential: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
@@ -164,8 +167,11 @@ const IssueCredential: React.FC = () => {
         certificates: selectedCertificates,
       };
 
-      // Issue VC using the API
-      await issueVC(currentUser.did, formData.recipientDID, credentialData);
+      // First create subject DID
+      const subjectDIDResult = await createSubjectDID(credentialData, currentUser.did);
+
+      // Then issue VC using the subject DID
+      await issueVC('did:cheqd:testnet:1d49bccf-8c96-4e9f-ad0c-ab2a98785165', subjectDIDResult.subjectDID, credentialData);
       
       setIsSubmitting(false);
       setIsSuccess(true);
@@ -189,13 +195,49 @@ const IssueCredential: React.FC = () => {
     }
   };
   
+  useEffect(() => {
+    const fetchPotentialRecipients = async () => {
+      if (!currentUser?.role) return;
+      
+      let recipientRole: string | null = null;
+      
+      // Determine which role to fetch based on current user's role
+      switch (currentUser.role) {
+        case 'manufacturer':
+          recipientRole = 'distributor';
+          break;
+        case 'distributor':
+          recipientRole = 'logistics';
+          break;
+        case 'logistics':
+          recipientRole = 'retailer';
+          break;
+        default:
+          // If the user has another role (like Admin), don't fetch recipients
+          return;
+      }
+      
+      setIsLoadingRecipients(true);
+      try {
+        const recipients = await getPotentialRecipients(recipientRole);
+        setPotentialRecipients(recipients);
+      } catch (error) {
+        console.error('Failed to fetch potential recipients:', error);
+      } finally {
+        setIsLoadingRecipients(false);
+      }
+    };
+  
+    fetchPotentialRecipients();
+  }, [currentUser?.role]);
+  
   if (!currentUser) return null;
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Navigation />
       
-      {showConfetti && <confetti width={width} height={height} recycle={false} numberOfPieces={500} />}
+      {showConfetti && <ReactConfetti width={width} height={height} recycle={false} numberOfPieces={500} />}
       
       <div className="md:ml-64 pt-6 md:pt-0">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -404,14 +446,13 @@ const IssueCredential: React.FC = () => {
                   
                   <div className="sm:col-span-2">
                     <label htmlFor="recipientDID" className="block text-sm font-medium text-slate-700">
-                      Recipient DID
+                      Recipient
                     </label>
                     <div className="mt-1 relative rounded-md shadow-sm">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <User className="h-5 w-5 text-slate-400" />
                       </div>
-                      <input
-                        type="text"
+                      <select
                         name="recipientDID"
                         id="recipientDID"
                         required
@@ -420,11 +461,21 @@ const IssueCredential: React.FC = () => {
                         className={`block w-full pl-10 pr-3 py-2 border ${
                           formErrors.recipientDID ? 'border-red-300' : 'border-slate-300'
                         } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                        placeholder="did:example:123..."
-                      />
+                        disabled={isLoadingRecipients}
+                      >
+                        <option value="">Select a recipient</option>
+                        {potentialRecipients.map((recipient) => (
+                          <option key={recipient.did} value={recipient.did}>
+                            {recipient.name} ({recipient.did.substring(0, 10)}...)
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     {formErrors.recipientDID && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.recipientDID}</p>
+                    )}
+                    {isLoadingRecipients && (
+                      <p className="mt-1 text-sm text-slate-500">Loading recipients...</p>
                     )}
                   </div>
                 </div>

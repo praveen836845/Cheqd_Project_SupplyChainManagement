@@ -60,12 +60,13 @@ const DIDAuth: React.FC = () => {
   const handleCreateDID = useCallback(async () => {
     try {
       // Validate required fields
-      if (!companyDetails.companyName || !companyDetails.location) {
-        alert('Please fill in all required fields');
+      if (!companyDetails.companyName || !companyDetails.location || !selectedRole) {
+        alert('Please fill in all required fields and select a role');
         return;
       }
    
       console.log("CompanyDetails" , companyDetails);
+      console.log("Selected Role", selectedRole);
        
       setConnectingState('connecting');
 
@@ -95,10 +96,10 @@ const DIDAuth: React.FC = () => {
         website: companyDetails.website,
         contactEmail: companyDetails.contactEmail,
         contactPhone: companyDetails.contactPhone,
-        type:selectedRole
+        role: selectedRole
       };
  
-      console.log("resouce_>>>>>>>>>>>>>>>>>>>>>>>>>>>", resourceData);
+      console.log("resource_>>>>>>>>>>>>>>>>>>>>>>>>>>>", resourceData);
       // Convert the resource data to base64
       const encodedData = btoa(JSON.stringify(resourceData));
 
@@ -143,7 +144,12 @@ const DIDAuth: React.FC = () => {
       setConnectingState('idle');
       alert('Failed to create DID. Please try again.');
     }
-  }, [companyDetails, navigate]);
+  }, [companyDetails, navigate, selectedRole]);
+
+  // Handle selecting a role in the create form
+  const handleRoleSelect = (role: UserRole) => {
+    setSelectedRole(role);
+  };
 
   // Memoize the form component
   const CreateDIDForm = useMemo(() => (
@@ -151,13 +157,65 @@ const DIDAuth: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-xl shadow-xl max-w-2xl w-full overflow-hidden"
+      onClick={(e) => e.stopPropagation()} // Prevent clicks from bubbling up and closing the modal
     >
       <div className="px-6 py-4 bg-slate-800 text-white">
         <h3 className="text-lg font-semibold">Create New DID</h3>
         <p className="text-sm text-slate-300">Enter your company details</p>
       </div>
 
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-slate-700 mb-3">Select Your Role *</label>
+          <div className="relative">
+            <select
+              value={selectedRole || ''}
+              onChange={(e) => handleRoleSelect(e.target.value as UserRole)}
+              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 cursor-pointer"
+            >
+              <option value="" disabled>Select a role...</option>
+              <option value="manufacturer">Manufacturer</option>
+              <option value="distributor">Distributor</option>
+              <option value="logistics">Logistics</option>
+              <option value="retailer">Retailer</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+              </svg>
+            </div>
+          </div>
+          
+          {/* Display selected role info */}
+          {selectedRole && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-center">
+              <div className="p-2 bg-blue-100 rounded-full text-blue-600 mr-3">
+                {selectedRole === 'manufacturer' && <Building2 size={20} />}
+                {selectedRole === 'distributor' && <Briefcase size={20} />}
+                {selectedRole === 'logistics' && <MapPin size={20} />}
+                {selectedRole === 'retailer' && <ShieldCheck size={20} />}
+              </div>
+              <div>
+                <p className="font-medium text-blue-700">
+                  {selectedRole === 'manufacturer' && 'Manufacturer'}
+                  {selectedRole === 'distributor' && 'Distributor'}
+                  {selectedRole === 'logistics' && 'Logistics'}
+                  {selectedRole === 'retailer' && 'Retailer'}
+                </p>
+                <p className="text-xs text-blue-600">
+                  {selectedRole === 'manufacturer' && 'Creates and issues the initial credentials for products'}
+                  {selectedRole === 'distributor' && 'Facilitates the movement of products from manufacturers'}
+                  {selectedRole === 'logistics' && 'Manages transportation and storage of products'}
+                  {selectedRole === 'retailer' && 'Sells products directly to consumers'}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {!selectedRole && (
+            <p className="text-sm text-red-500 mt-2">Please select a role to continue</p>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700">
@@ -278,6 +336,7 @@ const DIDAuth: React.FC = () => {
             onClick={() => {
               setShowCreateForm(false);
               setCompanyDetails(initialCompanyDetails);
+              setSelectedRole(null);
             }}
             className="flex-1 py-2 px-4 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50"
           >
@@ -285,9 +344,9 @@ const DIDAuth: React.FC = () => {
           </button>
           <button
             onClick={handleCreateDID}
-            disabled={!companyDetails.companyName || !companyDetails.location || connectingState === 'connecting'}
+            disabled={!companyDetails.companyName || !companyDetails.location || !selectedRole || connectingState === 'connecting'}
             className={`flex-1 py-2 px-4 rounded-lg text-white ${
-              companyDetails.companyName && companyDetails.location && connectingState !== 'connecting'
+              companyDetails.companyName && companyDetails.location && selectedRole && connectingState !== 'connecting'
                 ? 'bg-blue-600 hover:bg-blue-700'
                 : 'bg-slate-400 cursor-not-allowed'
             }`}
@@ -304,7 +363,7 @@ const DIDAuth: React.FC = () => {
         </div>
       </div>
     </motion.div>
-  ), [companyDetails, connectingState, handleCompanyDetailsChange, handleCreateDID]);
+  ), [companyDetails, connectingState, handleCompanyDetailsChange, handleCreateDID, selectedRole]);
 
   const verifyDID = async (didToVerify: string) => {
     try {
@@ -390,7 +449,6 @@ const DIDAuth: React.FC = () => {
       label: 'Retailer',
       description: 'Sells products directly to consumers'
     },
-   
   ];
 
   return (
@@ -588,9 +646,11 @@ const DIDAuth: React.FC = () => {
         </div>
       )}
 
-      {/* Create DID Form Modal */}
+      {/* Create DID Form Modal - Fixed Positioning */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+        >
           {CreateDIDForm}
         </div>
       )}
