@@ -86,6 +86,7 @@ export const createProduct = async (productData) => {
   }
 };
 
+
 export const getProductByResourceId = async (resourceId) => {
   try {
     const product = await Product.findOne({ resourceId });
@@ -111,27 +112,57 @@ export const getProductBySubjectDID = async (subjectDID) => {
     throw new Error(`Failed to fetch product: ${error.message}`);
   }
 };
-
 export const getProductsByIssuerDID = async (issuerDID) => {
   try {
-    // For testing, return mock data
-    return mockProducts;
-    // In production, use this:
-    // return await Product.find({ issuerDID }).sort({ createdAt: -1 });
+    if (!issuerDID) {
+      throw new Error('Issuer DID is required');
+    }
+
+    // Query the database for products with matching issuerDID
+    const products = await Product.find({ issuerDID })
+      .sort({ createdAt: -1 })
+      .lean(); // Convert to plain JavaScript objects for better performance
+
+    if (!products || products.length === 0) {
+      return {
+        success: true,
+        message: 'No products found for this issuer',
+        data: []
+      };
+    }
+
+    return  products;
+  
+
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error('Error fetching products by issuerDID:', error);
     throw new Error(`Failed to fetch products: ${error.message}`);
   }
 };
 
 export const getProductsByRecipientDID = async (recipientDID) => {
   try {
-    // For testing, return mock data
-    return mockProducts;
-    // In production, use this:
-    // return await Product.find({ recipientDID }).sort({ createdAt: -1 });
+    if (!recipientDID) {
+      throw new Error('Recipient DID is required');
+    }
+
+    // Query the database for products with matching recipientDID
+    const products = await Product.find({ recipientDID })
+      .sort({ createdAt: -1 })
+      .lean(); // Convert to plain JavaScript objects for better performance
+
+    if (!products || products.length === 0) {
+      return {
+        success: true,
+        message: 'No products found for this recipient',
+        data: []
+      };
+    }
+
+    return products;
+
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error('Error fetching products by recipientDID:', error);
     throw new Error(`Failed to fetch products: ${error.message}`);
   }
 };

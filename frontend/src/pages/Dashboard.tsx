@@ -22,6 +22,7 @@ import Navigation from '../components/layout/Navigation';
 import { getDashboardMetrics } from '../services/api';
 import { DashboardMetrics, UserRole, ProductHistory } from '../types';
 import ProductCard from '../components/shared/ProductCard';
+import axios from 'axios';
 
 // Mock data for fallback
 const mockMetrics: Record<string, DashboardMetrics> = {
@@ -145,6 +146,8 @@ const Dashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'valid' | 'invalid'>('all');
   const [products, setProducts] = useState<ProductHistory[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   
   const fetchMetrics = async (showLoading = true) => {
@@ -155,32 +158,65 @@ const Dashboard: React.FC = () => {
     try {
       const data = await getDashboardMetrics(currentUser.role as UserRole);
       setMetrics(data);
-      if (data.products) {
-        setProducts(data.products);
-      }
       setIsOffline(false);
     } catch (err) {
       console.error('Error fetching metrics:', err);
       // Use mock data on error
       setMetrics(mockMetrics[currentUser.role]);
-      setProducts(mockProducts);
       setIsOffline(true);
-      setError('Backend service is currently unavailable. Using offline data.');
+      setError('Dashboard metrics data is currently unavailable. Using offline data.');
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const fetchProducts = async (showLoading = true) => {
+    if (!currentUser?.role || !currentUser?.did) return;
+     console.log("CurrentUser----------------------------------->",currentUser);
+    if (showLoading) setProductsLoading(true);
+    setProductsError(null);
+    
+    try {
+      const response = await axios.post ('http://localhost:5000/api/productlist', {
+        data: {
+          role: currentUser.role,
+          userDID: 'did:cheqd:testnet:b379d4dc-c6d6-490d-8fca-52b92a574438'
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        setProducts(response.data);
+      } else {
+        // If response data is not in expected format
+        setProducts([]);
+        setProductsError('Product data is not in the expected format');
+      }
+      
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      // Use mock data on error
+      setProducts(mockProducts);
+      setProductsError('Product data is currently unavailable. Using offline data.');
+    } finally {
+      setProductsLoading(false);
     }
   };
   
   useEffect(() => {
     if (currentUser?.role) {
       fetchMetrics();
+      fetchProducts();
     }
-  }, [currentUser?.role]);
+  }, [currentUser?.role, currentUser?.did]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     fetchMetrics(false);
+    fetchProducts(false);
   };
 
   const handleProductClick = (productId: string) => {
@@ -233,7 +269,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error && !metrics) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="text-center">
@@ -574,27 +610,77 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map((product, index) => (
-                      <ProductCard
-                        key={product.productId}
-                        productId={product.productId}
-                        productName={product.productName}
-                        issuer={product.issuer}
-                        issuerRole={product.issuerRole}
-                        date={product.date}
-                        certificateCount={product.certificateCount}
-                        status={product.status}
-                      />
-                    ))
-                  ) : (
-                    <div className="col-span-full p-8 text-center bg-white rounded-lg shadow">
-                      <Package className="mx-auto h-12 w-12 text-slate-400" />
-                      <p className="mt-2 text-sm text-slate-500">No products found</p>
+
+                {/* Products loading state */}
+                {productsLoading ? (
+                  <div className="flex justify-center items-center bg-white rounded-lg shadow p-8">
+                    <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+                    <p className="ml-3 text-slate-500">Loading products...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Products error state */}
+                    {productsError && (
+                      <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div className="flex items-center">
+                          <AlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
+                          <p className="text-yellow-700">
+                            {productsError}
+                            <button
+                              onClick={() => fetchProducts()}
+                              className="ml-2 text-yellow-700 underline hover:text-yellow-800"
+                            >
+                              Try again
+                            </button>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Products grid */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {filteredProducts.length > 0 ? (
+                        filteredProducts.map((product, index) => (
+                          <ProductCard
+                            key={product.productId}
+                            productId={product.productId}
+                            productName={product.productName}
+                            issuer={product.issuer}
+                            issuerRole={product.issuerRole}
+                            date={product.date}
+                            certificateCount={product.certificateCount}
+                            status={product.status}
+                            onClick={() => handleProductClick(product.productId)}
+                          />
+                        ))
+                      ) : (
+                        <div className="col-span-full p-8 text-center bg-white rounded-lg shadow">
+                          <Package className="mx-auto h-12 w-12 text-slate-400" />
+                          <p className="mt-2 text-sm text-slate-500">No products found</p>
+                          {searchTerm || filterStatus !== 'all' ? (
+                            <p className="mt-1 text-xs text-slate-400">
+                              Try adjusting your search or filter criteria
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-slate-400">
+                              No products available for your account
+                            </p>
+                          )}
+                          <button
+                            onClick={() => {
+                              setSearchTerm('');
+                              setFilterStatus('all');
+                              fetchProducts();
+                            }}
+                            className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                          >
+                            Refresh Products
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
             </>
           )}

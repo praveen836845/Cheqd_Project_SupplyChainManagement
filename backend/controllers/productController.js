@@ -1,21 +1,21 @@
-import { 
-  getProductsByIssuerDID, 
-  getProductsByRecipientDID 
-} from '../services/productService.js';
+import { getProductsByIssuerDID, getProductsByRecipientDID } from '../services/productService.js';
 import { verifyVC } from '../services/cheqdService.js';
 
 export const getProductsForUser = async (req, res) => {
   try {
-    const { userDID, role } = req.user; // Assuming user info is attached by auth middleware
-    let products = [];
+    console.log("req.body", req);
+    const { userDID, role } = req.body; // Assuming user info is attached by auth middleware
+    let products
 
     if (role === 'manufacturer') {
       // For manufacturers, show products they issued
       products = await getProductsByIssuerDID(userDID);
+      console.log("Products by issuer", products);
     } else {
       // For other roles (distributor, logistics, retailer), show products where they are recipients
       products = await getProductsByRecipientDID(userDID);
     }
+
 
     // Format the response
     const formattedProducts = products.map(product => ({
