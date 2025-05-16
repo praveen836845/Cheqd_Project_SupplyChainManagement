@@ -250,7 +250,8 @@ const Dashboard: React.FC = () => {
   };
 
   const handleProductClick = (productId: string) => {
-    navigate(`/timeline/${productId}`);
+    // navigate(`/timeline/${productId}`);
+    
   };
 
   const filteredProducts = products.filter(product => {
