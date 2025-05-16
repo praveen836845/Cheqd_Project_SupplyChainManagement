@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as ed from '@noble/ed25519';
 import bs58 from 'bs58';
 import FormData from 'form-data';
+import { createProduct } from './productService.js';
 
 // Load Pinata credentials from environment
 const pinataApiKey = process.env.PINATA_API_KEY;
@@ -238,11 +239,17 @@ const uploadToPinata = async (vc) => {
 const issueVC = async (issuerDid, subjectDid, credentialData) => {
   console.log('Starting VC issuance:', { issuerDid, subjectDid, credentialData });
 
+  // Generate a unique resourceId
+  const resourceId = uuidv4();
+
   // Construct the payload as per cheqd API requirements
   const payload = {
     issuerDid: issuerDid,
     subjectDid: subjectDid,
-    attributes: credentialData,
+    attributes: {
+      ...credentialData,
+      resourceId // Include resourceId in the VC attributes
+    },
     "@context": ["https://www.w3.org/2018/credentials/v1", "https://schema.org"],
     type: ["VerifiableCredential", "SupplyChainCredential"],
     format: "jwt"
@@ -256,28 +263,51 @@ const issueVC = async (issuerDid, subjectDid, credentialData) => {
     'Content-Type': 'application/json'
   };
 
-  console.log('Issuing VC to cheqd API:', {
-    url,
-    payload,
-    headers: { ...headers, 'x-api-key': 'REDACTED' }
-  });
-
   try {
+    // Issue the VC
     const response = await axios.post(url, payload, { headers });
     console.log('VC issuance response:', response.data);
 
-    // Return just the VC
+    // Prepare product data for database storage
+    const productData = {
+      productId: credentialData.productId,
+      productName: credentialData.productName,
+      batchNumber: credentialData.batchNumber,
+      description: credentialData.description || '',
+      handlingDate: new Date(credentialData.handlingDate),
+      certificates: credentialData.certificates || [],
+      subjectDID: subjectDid,
+      issuerDID: issuerDid,
+      recipientDID: credentialData.recipientDID,
+      resourceId: resourceId,
+      status: 'active',
+      vcData: response.data // Store the complete VC data
+    };
+
+    console.log('Preparing to save product data:', productData);
+
+    // Save to database
+    const savedProduct = await createProduct(productData);
+    console.log('Product saved to database:', savedProduct);
+
+    // Return both the VC and saved product
     return {
-      vc: response.data
+      vc: response.data,
+      product: savedProduct
     };
   } catch (error) {
-    console.error('VC issuance error:', {
+    console.error('Error in issueVC:', {
       message: error.message,
       response: error.response?.data,
-      status: error.response?.status,
-      headers: error.response?.headers
+      status: error.response?.status
     });
-    throw new Error(`Failed to issue VC: ${error.response?.data?.message || error.message}`);
+
+    // Throw a more detailed error
+    if (error.response?.data) {
+      throw new Error(`Failed to issue VC: ${JSON.stringify(error.response.data)}`);
+    } else {
+      throw new Error(`Failed to issue VC: ${error.message}`);
+    }
   }
 };
 

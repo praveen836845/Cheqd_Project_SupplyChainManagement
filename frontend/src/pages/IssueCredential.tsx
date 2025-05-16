@@ -172,7 +172,9 @@ const IssueCredential: React.FC = () => {
       const subjectDIDResult = await createSubjectDID(credentialData, currentUser.did);
 
       // Then issue VC using the subject DID
-      await issueVC('did:cheqd:testnet:b379d4dc-c6d6-490d-8fca-52b92a574438', subjectDIDResult.subjectDID, credentialData);
+      const result = await issueVC('did:cheqd:testnet:b379d4dc-c6d6-490d-8fca-52b92a574438', subjectDIDResult.subjectDID, credentialData);
+      
+      console.log('VC issued and product saved:', result);
       
       setIsSubmitting(false);
       setIsSuccess(true);

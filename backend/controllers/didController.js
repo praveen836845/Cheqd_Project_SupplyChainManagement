@@ -112,7 +112,7 @@ const createSubjectDIDHandler = async(req, res) => {
       productName: productDetails.productName,
       productId: productDetails.productId,
       issuerDID,
-      recipientDID: issuerDID.recipientDID,
+      recipientDID: productDetails.recipientDID,
       resourceId: resourceResponse.data.resource.resourceId
     });
     await productCredential.save();
