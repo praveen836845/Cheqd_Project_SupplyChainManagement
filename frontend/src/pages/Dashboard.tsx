@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  FileSignature, 
-  ShieldCheck, 
+import {
+  FileSignature,
+  ShieldCheck,
   Activity,
   ArrowUpRight,
   Package,
@@ -149,10 +149,10 @@ const Dashboard: React.FC = () => {
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
-  
+
   const fetchMetrics = async (showLoading = true) => {
     if (!currentUser?.role) return;
-    
+
     if (showLoading) setLoading(true);
     setError(null);
     try {
@@ -173,12 +173,12 @@ const Dashboard: React.FC = () => {
 
   const fetchProducts = async (showLoading = true) => {
     if (!currentUser?.role || !currentUser?.did) return;
-     console.log("CurrentUser----------------------------------->",currentUser);
+
     if (showLoading) setProductsLoading(true);
     setProductsError(null);
-    
+
     try {
-      const response = await axios.post ('http://localhost:5000/api/productlist', {
+      const response = await axios.post('http://localhost:5000/api/productlist', {
         data: {
           role: currentUser.role,
           userDID: 'did:cheqd:testnet:b379d4dc-c6d6-490d-8fca-52b92a574438'
@@ -187,25 +187,42 @@ const Dashboard: React.FC = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.data && Array.isArray(response.data)) {
-        setProducts(response.data);
+        // Map API response to expected ProductHistory format
+        const mappedProducts = response.data.map((product: any) => ({
+          productId: product.productId,
+          productName: product.productName,
+          manufacturerDID: product.recipientDID,
+          manufacturerName: product.issuer || 'Unknown',
+          issuer: product.issuer || product.batchNumber,
+          issuerRole: currentUser.role || 'unknown',
+          date: product.handlingDate,
+          certificateCount: product.certificates?.length || 0,
+          resourceId: product.resourceId,
+          description: product.description,
+          jwt: product.jwt,
+
+          status: product.status === 'active' ? 'valid' : 'invalid',
+          journey: [],
+          certificates: product.certificates || []
+        }));
+
+        setProducts(mappedProducts);
       } else {
-        // If response data is not in expected format
         setProducts([]);
         setProductsError('Product data is not in the expected format');
       }
-      
+
     } catch (err) {
       console.error('Error fetching products:', err);
-      // Use mock data on error
       setProducts(mockProducts);
       setProductsError('Product data is currently unavailable. Using offline data.');
     } finally {
       setProductsLoading(false);
     }
   };
-  
+
   useEffect(() => {
     if (currentUser?.role) {
       fetchMetrics();
@@ -225,7 +242,7 @@ const Dashboard: React.FC = () => {
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.productId.toLowerCase().includes(searchTerm.toLowerCase());
+      product.productId.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -316,7 +333,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navigation />
-      
+
       <div className="md:ml-64 pt-6 md:pt-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
@@ -326,19 +343,18 @@ const Dashboard: React.FC = () => {
                 Welcome back, {currentUser.name}
               </p>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className={`inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                  refreshing ? 'opacity-75 cursor-not-allowed' : ''
-                }`}
+                className={`inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${refreshing ? 'opacity-75 cursor-not-allowed' : ''
+                  }`}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
-              
+
               {canIssueCredentials && (
                 <Link
                   to="/issue"
@@ -350,7 +366,7 @@ const Dashboard: React.FC = () => {
               )}
             </div>
           </div>
-          
+
           <AnimatePresence>
             {isOffline && (
               <motion.div
@@ -374,7 +390,7 @@ const Dashboard: React.FC = () => {
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           {metrics && (
             <>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -408,7 +424,7 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                 </motion.div>
-                
+
                 <motion.div
                   custom={1}
                   variants={cardVariants}
@@ -439,7 +455,7 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                 </motion.div>
-                
+
                 <motion.div
                   custom={2}
                   variants={cardVariants}
@@ -470,7 +486,7 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                 </motion.div>
-                
+
                 <motion.div
                   custom={3}
                   variants={cardVariants}
@@ -502,7 +518,7 @@ const Dashboard: React.FC = () => {
                   </div>
                 </motion.div>
               </div>
-              
+
               <div className="mt-8">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-medium text-slate-900">Recent Activity</h2>
@@ -579,31 +595,28 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setFilterStatus('all')}
-                        className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          filterStatus === 'all'
+                        className={`px-3 py-1 text-xs font-medium rounded-full ${filterStatus === 'all'
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                          }`}
                       >
                         All
                       </button>
                       <button
                         onClick={() => setFilterStatus('valid')}
-                        className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          filterStatus === 'valid'
+                        className={`px-3 py-1 text-xs font-medium rounded-full ${filterStatus === 'valid'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                          }`}
                       >
                         Valid
                       </button>
                       <button
                         onClick={() => setFilterStatus('invalid')}
-                        className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          filterStatus === 'invalid'
+                        className={`px-3 py-1 text-xs font-medium rounded-full ${filterStatus === 'invalid'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                          }`}
                       >
                         Invalid
                       </button>
@@ -641,6 +654,7 @@ const Dashboard: React.FC = () => {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {filteredProducts.length > 0 ? (
                         filteredProducts.map((product, index) => (
+                          console.log("ProductCard", product),
                           <ProductCard
                             key={product.productId}
                             productId={product.productId}
@@ -649,6 +663,9 @@ const Dashboard: React.FC = () => {
                             issuerRole={product.issuerRole}
                             date={product.date}
                             certificateCount={product.certificateCount}
+                            resourceId={product.resourceId}
+                            description={product.description}
+                            jwt={product.jwt}
                             status={product.status}
                             onClick={() => handleProductClick(product.productId)}
                           />

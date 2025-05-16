@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -20,6 +20,30 @@ const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
+
+  // Get the auth data from localStorage on component mount
+  useEffect(() => {
+    const storedAuthInfo = localStorage.getItem('authInfo');
+    if (storedAuthInfo) {
+      try {
+        const parsedAuthInfo: AuthInfo = JSON.parse(storedAuthInfo);
+        setAuthInfo(parsedAuthInfo);
+        console.log("DID loaded from localStorage:", parsedAuthInfo.did);
+      } catch (error) {
+        console.error("Error parsing authInfo from localStorage:", error);
+      }
+    } else {
+      console.log("No auth info found in localStorage");
+    }
+  }, []);
+
+  interface AuthInfo {
+    did: string;
+    role: string;
+    timestamp: string;
+    verificationData?: any; // Added this to match your full structure if needed
+  }
 
   const handleLogout = () => {
     logout();
@@ -73,7 +97,7 @@ const Navigation: React.FC = () => {
         </div>
         
         <div className="mb-6">
-          <DIDCard />
+          <DIDCard did={authInfo?.did} />
         </div>
 
         <nav className="flex-1">

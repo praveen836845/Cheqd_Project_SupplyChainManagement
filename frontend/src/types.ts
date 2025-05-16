@@ -16,6 +16,9 @@ export interface ProductHistory {
   date: string;
   certificateCount: number;
   status: 'valid' | 'invalid';
+  description?: string;
+  jwt?: string;
+  resourceId?: string;
 }
 
 export interface Activity {

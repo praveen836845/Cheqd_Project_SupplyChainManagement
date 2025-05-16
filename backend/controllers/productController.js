@@ -4,7 +4,7 @@ import { verifyVC } from '../services/cheqdService.js';
 export const getProductsForUser = async (req, res) => {
   try {
     console.log("req.body", req);
-    const { userDID, role } = req.body; // Assuming user info is attached by auth middleware
+    const { userDID, role } = req.body.data; // Assuming user info is attached by auth middleware
     let products
 
     if (role === 'manufacturer') {
@@ -22,6 +22,7 @@ export const getProductsForUser = async (req, res) => {
       id: product._id,
       productId: product.productId,
       productName: product.productName,
+      description: product.description,
       batchNumber: product.batchNumber,
       handlingDate: product.handlingDate,
       status: product.status,

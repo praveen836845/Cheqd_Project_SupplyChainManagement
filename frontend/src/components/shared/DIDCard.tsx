@@ -3,16 +3,19 @@ import { motion } from 'framer-motion';
 import { Copy, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-const DIDCard: React.FC = () => {
+interface DIDCardProps {
+    did?: string;
+}
+const DIDCard: React.FC<DIDCardProps> = ({did}) => {
   const { currentUser } = useAuth();
   const [copied, setCopied] = useState(false);
 
-  if (!currentUser) return null;
+  if (!currentUser || !did) return null;
 
-  const truncatedDID = `${currentUser.did.substring(0, 16)}...${currentUser.did.substring(currentUser.did.length - 4)}`;
+  const truncatedDID = `${did.substring(0, 16)}...${did.substring(did.length - 4)}`;
 
   const handleCopyDID = () => {
-    navigator.clipboard.writeText(currentUser.did);
+    navigator.clipboard.writeText(did);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
