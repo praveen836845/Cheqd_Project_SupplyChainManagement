@@ -91,7 +91,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     console.log('Verifying product with ID:', productIdentifier);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/verify-vc', {
+      const response = await axios.post('https://cheqd-project-supplychainmanagement.onrender.com/api/verify-vc', {
         jwt: jwt,
         productId: productId,
         Id: productIdentifier
