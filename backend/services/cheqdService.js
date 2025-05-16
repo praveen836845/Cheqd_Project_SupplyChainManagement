@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { cheqdStudioApiUrl, cheqdApiKey } from '../config.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -46,9 +45,6 @@ const encodeDidKey = (publicKey, multicodecValue) => {
   // Encode as Multibase base58-btc
   return `did:key:${toMultibaseBase58Btc(combined)}`;
 };
-
-
-
 
 const createKey = async () => {
   const url = `${cheqdStudioApiUrl}/key/create`;
@@ -112,7 +108,6 @@ const createSubjectDID = async (subjectIdentifier) => {
       throw new Error(`Failed to create DID: ${error.response?.data?.message || error.message}`);
   }
 };
-
 
 const createDID = async (issuerIdentifier, subjectIdentifier) => {
   try {
@@ -271,14 +266,9 @@ const issueVC = async (issuerDid, subjectDid, credentialData) => {
     const response = await axios.post(url, payload, { headers });
     console.log('VC issuance response:', response.data);
 
-    // Upload the VC to Pinata to get the CID
-    const cid = await uploadToPinata(response.data);
-    console.log('VC CID from Pinata:', cid);
-
-    // Return the VC with the CID
+    // Return just the VC
     return {
-      vc: response.data,
-      cid: cid
+      vc: response.data
     };
   } catch (error) {
     console.error('VC issuance error:', {

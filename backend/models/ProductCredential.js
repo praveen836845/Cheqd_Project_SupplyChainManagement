@@ -24,7 +24,6 @@ const productCredentialSchema = new mongoose.Schema({
   },
   vcData: {
     type: Object,
-    required: true
   },
   createdAt: {
     type: Date,

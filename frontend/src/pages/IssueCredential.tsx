@@ -165,13 +165,14 @@ const IssueCredential: React.FC = () => {
         description: formData.description,
         handlingDate: formData.handlingDate,
         certificates: selectedCertificates,
+        recipientDID: formData.recipientDID,
       };
 
       // First create subject DID
       const subjectDIDResult = await createSubjectDID(credentialData, currentUser.did);
 
       // Then issue VC using the subject DID
-      await issueVC('did:cheqd:testnet:1d49bccf-8c96-4e9f-ad0c-ab2a98785165', subjectDIDResult.subjectDID, credentialData);
+      await issueVC('did:cheqd:testnet:b379d4dc-c6d6-490d-8fca-52b92a574438', subjectDIDResult.subjectDID, credentialData);
       
       setIsSubmitting(false);
       setIsSuccess(true);

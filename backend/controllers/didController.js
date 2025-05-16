@@ -65,7 +65,7 @@ const createDIDHandler = async (req, res) => {
 const createSubjectDIDHandler = async(req, res) => {
   try {
     const { productDetails,  } = req.body;
-    const issuerDID = 'did:cheqd:testnet:1d49bccf-8c96-4e9f-ad0c-ab2a98785165';
+    const issuerDID = 'did:cheqd:testnet:b379d4dc-c6d6-490d-8fca-52b92a574438';
    console.log("-----------------------------------SubjectDID--------------------------------", productDetails);
 
 
@@ -112,7 +112,7 @@ const createSubjectDIDHandler = async(req, res) => {
       productName: productDetails.productName,
       productId: productDetails.productId,
       issuerDID,
-      recipientDID: subjectDID,
+      recipientDID: issuerDID.recipientDID,
       resourceId: resourceResponse.data.resource.resourceId
     });
     await productCredential.save();
