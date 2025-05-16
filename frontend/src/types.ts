@@ -9,6 +9,7 @@ export interface User {
 }
 
 export interface ProductHistory {
+  _id?: string;
   productId: string;
   productName: string;
   issuer: string;

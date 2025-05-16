@@ -13,6 +13,7 @@ import {
 import axios from 'axios';
 
 interface ProductCardProps {
+  _id?: string;
   productId: string;
   productName: string;
   issuer: string;
@@ -27,6 +28,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({
+  _id,
   productId,
   productName,
   issuer,
@@ -78,13 +80,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
 
+    // Use the appropriate ID field for verification
+    const productIdentifier = _id || productId;
+    console.log('Verifying product with ID:', productIdentifier);
+
     try {
       const response = await axios.post('http://localhost:5000/api/verify-vc', {
-        jwt: jwt
+        jwt: jwt,
+        productId: productId,
+        Id: productIdentifier
       });
+
+      console.log('Verification response:', response.data);
 
       if (response.data.verified) {
         alert('Verification successful: This credential is valid');
+        // Refresh the page to show updated status
+        window.location.reload();
       } else {
         alert('Verification failed: This credential is invalid');
       }

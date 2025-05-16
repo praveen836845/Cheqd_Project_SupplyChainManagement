@@ -171,9 +171,21 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  interface AuthInfo {
+    did: string;
+    role: string;
+    timestamp: string;
+    verificationData?: any; // Added this to match your full structure if needed
+  }
   const fetchProducts = async (showLoading = true) => {
     if (!currentUser?.role || !currentUser?.did) return;
-
+    const storedAuthInfo = localStorage.getItem('authInfo');
+    
+    // Add null check before parsing
+    const parsedAuthInfo: AuthInfo | null = storedAuthInfo ? JSON.parse(storedAuthInfo) : null;
+      console.log("DID loaded from localStorage:**********", parsedAuthInfo?.did)
+    if (!parsedAuthInfo) return; // Exit if no auth info is available
+    
     if (showLoading) setProductsLoading(true);
     setProductsError(null);
 
@@ -181,7 +193,7 @@ const Dashboard: React.FC = () => {
       const response = await axios.post('http://localhost:5000/api/productlist', {
         data: {
           role: currentUser.role,
-          userDID: 'did:cheqd:testnet:b379d4dc-c6d6-490d-8fca-52b92a574438'
+          userDID: parsedAuthInfo?.did
         },
         headers: {
           'Content-Type': 'application/json'
@@ -191,6 +203,7 @@ const Dashboard: React.FC = () => {
       if (response.data && Array.isArray(response.data)) {
         // Map API response to expected ProductHistory format
         const mappedProducts = response.data.map((product: any) => ({
+          _id: product._id,
           productId: product.productId,
           productName: product.productName,
           manufacturerDID: product.recipientDID,
@@ -657,6 +670,7 @@ const Dashboard: React.FC = () => {
                           console.log("ProductCard", product),
                           <ProductCard
                             key={product.productId}
+                            _id={product._id}
                             productId={product.productId}
                             productName={product.productName}
                             issuer={product.issuer}

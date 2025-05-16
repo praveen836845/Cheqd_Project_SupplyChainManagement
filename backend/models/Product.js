@@ -48,8 +48,8 @@ const productSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'transferred', 'completed'],
-    default: 'active'
+    enum: ['active', 'pending', 'completed'],
+    default: 'pending'
   },
   vcData: {
     type: mongoose.Schema.Types.Mixed,
