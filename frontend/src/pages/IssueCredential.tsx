@@ -165,6 +165,7 @@ const IssueCredential: React.FC = () => {
         description: formData.description,
         handlingDate: formData.handlingDate,
         certificates: selectedCertificates,
+        recipientDID: formData.recipientDID,
       };
 
       // First create subject DID
