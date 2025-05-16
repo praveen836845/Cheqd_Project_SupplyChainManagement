@@ -190,7 +190,7 @@ const Dashboard: React.FC = () => {
     setProductsError(null);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/productlist', {
+      const response = await axios.post('https://cheqd-project-supplychainmanagement.onrender.com/api/productlist', {
         data: {
           role: currentUser.role,
           userDID: parsedAuthInfo?.did
