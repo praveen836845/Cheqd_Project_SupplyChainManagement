@@ -47,6 +47,9 @@ const encodeDidKey = (publicKey, multicodecValue) => {
   return `did:key:${toMultibaseBase58Btc(combined)}`;
 };
 
+
+
+
 const createKey = async () => {
   const url = `${cheqdStudioApiUrl}/key/create`;
   const payload = { type: 'Ed25519' };
@@ -93,6 +96,23 @@ const createKeyDID = async (identifier) => {
     throw new Error(`Failed to create did:key: ${error.message}`);
   }
 };
+
+const createSubjectDID = async (subjectIdentifier) => {
+  try {
+      // Create only the subject DID
+      const subjectResult = await createKeyDID(subjectIdentifier);
+      return subjectResult;
+  } catch (error) {
+      console.error('DID creation error:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          headers: error.response?.headers
+      });
+      throw new Error(`Failed to create DID: ${error.response?.data?.message || error.message}`);
+  }
+};
+
 
 const createDID = async (issuerIdentifier, subjectIdentifier) => {
   try {
@@ -319,4 +339,4 @@ const checkTrustRegistry = async (issuerDid) => {
   }
 };
 
-export { createDID, issueVC, verifyVC, checkTrustRegistry, createKey };
+export { createDID, issueVC, verifyVC, checkTrustRegistry, createKey , createSubjectDID };

@@ -36,6 +36,10 @@ const companySchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  role: {
+    type: String,
+    required: false // Set to true if role is mandatory
+  },
   createdAt: {
     type: Date,
     default: Date.now

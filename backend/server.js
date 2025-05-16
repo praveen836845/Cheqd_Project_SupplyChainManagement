@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { port } from './config.js';
-import { createDIDHandler, verifyDIDHandler } from './controllers/didController.js';
+import { createDIDHandler, verifyDIDHandler, createSubjectDIDHandler, getPotentialRecipients } from './controllers/didController.js';
 import { issueVCHandler, verifyVCHandler } from './controllers/vcController.js';
 import { getDashboardMetricsHandler } from './controllers/dashboardController.js';
 // import { getProductTimeline } from './controllers/productController.js';
@@ -16,6 +16,8 @@ app.use(express.json());
 connectDB();
 
 app.post('/api/did/create', createDIDHandler);
+app.post('/api/did/create-subject', createSubjectDIDHandler);
+app.get('/api/did/potential-recipients', getPotentialRecipients);
 app.post('/api/verify-did', verifyDIDHandler);
 app.post('/api/vc/issue', issueVCHandler);
 app.post('/api/vc/verify', verifyVCHandler);

@@ -1,7 +1,8 @@
-import { createDID } from "../services/cheqdService.js";
+import { createDID , createSubjectDID} from "../services/cheqdService.js";
 import axios from 'axios';
 import { cheqdStudioApiUrl, cheqdApiKey } from '../config.js';
 import { Company } from '../models/Company.js';
+import { ProductCredential } from '../models/ProductCredential.js';
 
 const createDIDHandler = async (req, res) => {
   try {
@@ -38,11 +39,12 @@ const createDIDHandler = async (req, res) => {
         }
       }
     );
-
+    console.log("companyDetails*****************************", companyDetails);
     // Store in MongoDB
     const company = new Company({
       did,
       ...companyDetails,
+      role: companyDetails.role, // Explicitly store the role field
       resourceId: resourceResponse.data.resource.resourceId
     });
     await company.save();
@@ -56,6 +58,74 @@ const createDIDHandler = async (req, res) => {
     console.error('DID creation error:', error);
     res.status(500).json({ 
       error: error.response?.data?.message || error.message || 'Failed to create DID'
+    });
+  }
+};
+
+const createSubjectDIDHandler = async(req, res) => {
+  try {
+    const { productDetails,  } = req.body;
+    const issuerDID = 'did:cheqd:testnet:1d49bccf-8c96-4e9f-ad0c-ab2a98785165';
+   console.log("-----------------------------------SubjectDID--------------------------------", productDetails);
+
+
+    if (!productDetails || !issuerDID) {
+      return res.status(400).json({ error: 'Product details and issuer DID are required' });
+    }
+ 
+    console.log("**********************IssuerId", issuerDID);
+    // Create DID for the product
+    const result = await createSubjectDID(productDetails.productName);
+    const subjectDID = result.did;
+
+    // Create resource JSON
+    const resourceJson = {
+      ...productDetails,
+      issuerDID,
+      subjectDID,
+      timestamp: new Date().toISOString()
+    };
+
+    // Convert to base64
+    const jsonString = JSON.stringify(resourceJson);
+    const base64Encoded = Buffer.from(jsonString).toString('base64');
+
+    // Create resource on cheqd
+    const resourceResponse = await axios.post(
+      `${cheqdStudioApiUrl}/resource/create/${issuerDID}`,
+      {
+        data: base64Encoded,
+        encoding: 'base64',
+        name: `${productDetails.productName}_Resource`,
+        type: 'TextDocument'
+      },
+      {
+        headers: {
+          'x-api-key': cheqdApiKey,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    // Store in MongoDB
+    const productCredential = new ProductCredential({
+      productName: productDetails.productName,
+      productId: productDetails.productId,
+      issuerDID,
+      recipientDID: subjectDID,
+      resourceId: resourceResponse.data.resource.resourceId
+    });
+    await productCredential.save();
+
+    res.json({
+      subjectDID,
+      resourceId: resourceResponse.data.resource.resourceId,
+      productDetails
+    });
+  } catch (error) {
+    console.error('Subject DID creation error:', error);
+    res.status(500).json({ 
+      error: error.response?.data?.message || error.message || 'Failed to create Subject DID'
     });
   }
 };
@@ -84,4 +154,27 @@ export const verifyDIDHandler = async (req, res) => {
   }
 };
 
-export { createDIDHandler };
+const getPotentialRecipients = async (req, res) => {
+  try {
+    const { role } = req.query;
+    console.log("Role Appear in the backend :", role);
+    
+    if (!role) {
+      return res.status(400).json({ error: 'Role is required' });
+    }
+
+    
+
+    // Find companies with the target role
+    const recipients = await Company.find({ role: role }).select('did name');
+    
+    res.json(recipients);
+  } catch (error) {
+    console.error('Error fetching potential recipients:', error);
+    res.status(500).json({ 
+      error: error.message || 'Failed to fetch potential recipients'
+    });
+  }
+};
+
+export { createDIDHandler, createSubjectDIDHandler, getPotentialRecipients };
